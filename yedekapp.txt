@@ -1,0 +1,177 @@
+import { useState, useEffect } from "react";
+import API from "./api";
+
+function App() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [prices, setPrices] = useState([]);
+  const [marginType, setMarginType] = useState("percent");
+  const [marginValue, setMarginValue] = useState("");
+
+  useEffect(() => {
+    if (token) {
+      fetchPrices();
+    }
+  }, [token]);
+
+  const fetchPrices = async () => {
+    try {
+      const res = await API.get("/prices");
+      setPrices(res.data.data);
+    } catch (err) {
+      console.log("Fiyatlar alınamadı");
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await API.post("/login", { username, password });
+      localStorage.setItem("token", res.data.token);
+      setToken(res.data.token);
+    } catch (err) {
+  console.log(err.response);
+  alert("Giriş başarısız");
+   }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+  };
+
+  const updateMargin = async () => {
+    try {
+      await API.post(
+        "/margin",
+        {
+          type: marginType,
+          value: Number(marginValue),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("Marj güncellendi");
+      fetchPrices();
+    } catch (err) {
+      alert("Hata oluştu");
+    }
+  };
+
+  if (!token) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <h2>Admin Login</h2>
+          <form onSubmit={handleLogin}>
+            <input
+              style={styles.input}
+              type="text"
+              placeholder="Kullanıcı adı"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              style={styles.input}
+              type="password"
+              placeholder="Şifre"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button style={styles.button}>Giriş Yap</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.dashboard}>
+      <h2>Admin Panel</h2>
+
+      <div style={styles.marginBox}>
+        <h3>Marj Ayarı</h3>
+        <select
+          value={marginType}
+          onChange={(e) => setMarginType(e.target.value)}
+        >
+          <option value="percent">Yüzde (%)</option>
+          <option value="fixed">Sabit TL</option>
+        </select>
+
+        <input
+          type="number"
+          placeholder="Marj değeri"
+          value={marginValue}
+          onChange={(e) => setMarginValue(e.target.value)}
+        />
+
+        <button onClick={updateMargin}>Kaydet</button>
+      </div>
+
+      <h3>Güncel Fiyatlar</h3>
+      <div style={styles.priceList}>
+        {prices.map((item, index) => (
+          <div key={index} style={styles.priceItem}>
+            <strong>{item.key}</strong>
+            <div>Sell: {item.sell}</div>
+            <div>Sell + Marj: {item.sell_with_margin}</div>
+          </div>
+        ))}
+      </div>
+
+      <button style={{ marginTop: "30px" }} onClick={handleLogout}>
+        Çıkış Yap
+      </button>
+    </div>
+  );
+}
+
+const styles = {
+  container: {
+    height: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f4f6f9",
+  },
+  card: {
+    backgroundColor: "#fff",
+    padding: "40px",
+    borderRadius: "12px",
+    width: "300px",
+    textAlign: "center",
+  },
+  input: {
+    width: "100%",
+    padding: "10px",
+    marginBottom: "10px",
+  },
+  button: {
+    width: "100%",
+    padding: "10px",
+    cursor: "pointer",
+  },
+  dashboard: {
+    padding: "40px",
+  },
+  marginBox: {
+    marginBottom: "30px",
+  },
+  priceList: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gap: "15px",
+  },
+  priceItem: {
+    padding: "10px",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+  },
+};
+
+export default App;
