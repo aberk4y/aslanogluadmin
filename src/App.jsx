@@ -5,18 +5,35 @@ function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState(localStorage.getItem("token"));
+
   const [prices, setPrices] = useState([]);
+  const [productMargins, setProductMargins] = useState([]);
+
   const [marginType, setMarginType] = useState("percent");
   const [marginValue, setMarginValue] = useState("");
 
   useEffect(() => {
-    if (token) fetchPrices();
+    if (token) {
+      fetchPrices();
+      fetchProductMargins();
+    }
   }, [token]);
 
   const fetchPrices = async () => {
     try {
       const res = await API.get("/prices");
       setPrices(res.data.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const fetchProductMargins = async () => {
+    try {
+      const res = await API.get("/product-margin", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProductMargins(res.data);
     } catch (err) {
       console.log(err);
     }
@@ -38,7 +55,7 @@ function App() {
     setToken(null);
   };
 
-  const updateMargin = async () => {
+  const updateGlobalMargin = async () => {
     try {
       await API.post(
         "/margin",
@@ -46,35 +63,58 @@ function App() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchPrices();
-      alert("Marj güncellendi");
+      alert("Global marj güncellendi");
     } catch {
       alert("Hata oluştu");
     }
   };
+
+  const updateProductMargin = async (product) => {
+    try {
+      await API.post(
+        "/product-margin",
+        product,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchPrices();
+      alert("Ürün marjı güncellendi");
+    } catch {
+      alert("Kaydedilemedi");
+    }
+  };
+
+  const handleProductChange = (index, field, value) => {
+    const updated = [...productMargins];
+    updated[index][field] = value;
+    setProductMargins(updated);
+  };
+
+  /* ---------------- LOGIN SCREEN ---------------- */
 
   if (!token) {
     return (
       <div className="bg-darkbg min-h-screen flex items-center justify-center">
         <div className="bg-cardbg border border-borderc p-10 rounded-2xl w-[350px] shadow-xl">
           <h2 className="text-gold text-2xl font-bold mb-6 text-center">
-            Aslanoglu Kuyumculuk Admin
+            Aslanoğlu Kuyumculuk Admin
           </h2>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <input
-              className="w-full p-3 rounded-lg bg-darkbg border border-borderc text-white focus:outline-none focus:border-gold"
+              className="w-full p-3 rounded-lg bg-darkbg border border-borderc text-white"
               type="text"
               placeholder="Kullanıcı adı"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
             <input
-              className="w-full p-3 rounded-lg bg-darkbg border border-borderc text-white focus:outline-none focus:border-gold"
+              className="w-full p-3 rounded-lg bg-darkbg border border-borderc text-white"
               type="password"
               placeholder="Şifre"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button className="w-full bg-gold text-black font-semibold p-3 rounded-lg hover:opacity-90 transition">
+            <button className="w-full bg-gold text-black font-semibold p-3 rounded-lg">
               Giriş Yap
             </button>
           </form>
@@ -83,23 +123,28 @@ function App() {
     );
   }
 
+  /* ---------------- ADMIN PANEL ---------------- */
+
   return (
     <div className="bg-darkbg min-h-screen text-white p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gold">Kuyumcu Panel</h1>
+        <h1 className="text-3xl font-bold text-gold">
+          Aslanoğlu Kuyumculuk Yönetim Paneli
+        </h1>
         <button
           onClick={handleLogout}
-          className="border border-gold text-gold px-4 py-2 rounded-lg hover:bg-gold hover:text-black transition"
+          className="border border-gold text-gold px-4 py-2 rounded-lg"
         >
           Çıkış Yap
         </button>
       </div>
 
-      {/* Margin Card */}
-      <div className="bg-cardbg border border-borderc p-6 rounded-2xl mb-8">
+      {/* GLOBAL MARGIN */}
+      <div className="bg-cardbg border border-borderc p-6 rounded-2xl mb-10">
         <h3 className="text-xl text-gold font-semibold mb-4">
-          Kar Marjı Ayarı
+          Global Marj Ayarı
         </h3>
+
         <div className="flex gap-4 flex-wrap">
           <select
             className="bg-darkbg border border-borderc p-3 rounded-lg"
@@ -119,28 +164,103 @@ function App() {
           />
 
           <button
-            onClick={updateMargin}
-            className="bg-gold text-black px-6 rounded-lg font-semibold hover:opacity-90 transition"
+            onClick={updateGlobalMargin}
+            className="bg-gold text-black px-6 rounded-lg font-semibold"
           >
             Güncelle
           </button>
         </div>
       </div>
 
-      {/* Prices Grid */}
-      <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {prices.map((item, index) => (
-          <div
-            key={index}
-            className="bg-cardbg border border-borderc p-4 rounded-xl hover:border-gold transition"
-          >
-            <h4 className="text-gold font-semibold mb-2">{item.key}</h4>
-            <p>Satış: {item.sell}</p>
-            <p className="font-bold text-gold">
-              Marjlı: {item.sell_with_margin}
-            </p>
-          </div>
-        ))}
+      {/* PRODUCT BASED MARGIN */}
+      <div>
+        <h2 className="text-2xl text-gold font-bold mb-6">
+          Ürün Bazlı Marj Yönetimi
+        </h2>
+
+        <div className="space-y-6">
+          {productMargins.map((item, index) => (
+            <div
+              key={item.product}
+              className="bg-cardbg border border-borderc p-6 rounded-xl"
+            >
+              <h3 className="text-lg font-semibold mb-4 text-gold">
+                {item.product}
+              </h3>
+
+              <div className="grid md:grid-cols-4 gap-4">
+                <select
+                  value={item.buy_type}
+                  onChange={(e) =>
+                    handleProductChange(index, "buy_type", e.target.value)
+                  }
+                  className="bg-darkbg border border-borderc p-2 rounded"
+                >
+                  <option value="percent">% Buy</option>
+                  <option value="fixed">₺ Buy</option>
+                </select>
+
+                <input
+                  type="number"
+                  value={item.buy_value}
+                  onChange={(e) =>
+                    handleProductChange(index, "buy_value", e.target.value)
+                  }
+                  className="bg-darkbg border border-borderc p-2 rounded"
+                />
+
+                <select
+                  value={item.sell_type}
+                  onChange={(e) =>
+                    handleProductChange(index, "sell_type", e.target.value)
+                  }
+                  className="bg-darkbg border border-borderc p-2 rounded"
+                >
+                  <option value="percent">% Sell</option>
+                  <option value="fixed">₺ Sell</option>
+                </select>
+
+                <input
+                  type="number"
+                  value={item.sell_value}
+                  onChange={(e) =>
+                    handleProductChange(index, "sell_value", e.target.value)
+                  }
+                  className="bg-darkbg border border-borderc p-2 rounded"
+                />
+              </div>
+
+              <button
+                onClick={() => updateProductMargin(item)}
+                className="mt-4 bg-gold text-black px-4 py-2 rounded"
+              >
+                Kaydet
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PRICE PREVIEW */}
+      <div className="mt-12">
+        <h2 className="text-xl text-gold font-bold mb-6">
+          Güncel Fiyat Önizleme
+        </h2>
+
+        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {prices.map((item, index) => (
+            <div
+              key={index}
+              className="bg-cardbg border border-borderc p-4 rounded-xl"
+            >
+              <h4 className="text-gold font-semibold mb-2">
+                {item.key}
+              </h4>
+              <p>Alış: {item.buy_with_margin}</p>
+              <p>Satış: {item.sell_with_margin}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
