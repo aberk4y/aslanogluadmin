@@ -73,12 +73,19 @@ function App() {
     try {
       await API.post(
         "/product-margin",
-        product,
+        {
+          product: product.product,
+          buy_type: product.buy_type,
+          buy_value: Number(product.buy_value),
+          sell_type: product.sell_type,
+          sell_value: Number(product.sell_value),
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchPrices();
       alert("Ürün marjı güncellendi");
-    } catch {
+    } catch (err) {
+      console.log(err.response?.data);
       alert("Kaydedilemedi");
     }
   };
@@ -88,8 +95,6 @@ function App() {
     updated[index][field] = value;
     setProductMargins(updated);
   };
-
-  /* ---------------- LOGIN SCREEN ---------------- */
 
   if (!token) {
     return (
@@ -123,8 +128,6 @@ function App() {
     );
   }
 
-  /* ---------------- ADMIN PANEL ---------------- */
-
   return (
     <div className="bg-darkbg min-h-screen text-white p-8">
       <div className="flex justify-between items-center mb-8">
@@ -152,7 +155,7 @@ function App() {
             onChange={(e) => setMarginType(e.target.value)}
           >
             <option value="percent">Yüzde (%)</option>
-            <option value="fixed">Sabit TL</option>
+            <option value="tl">Sabit TL</option>
           </select>
 
           <input
@@ -172,7 +175,7 @@ function App() {
         </div>
       </div>
 
-      {/* PRODUCT BASED MARGIN */}
+      {/* PRODUCT MARGIN */}
       <div>
         <h2 className="text-2xl text-gold font-bold mb-6">
           Ürün Bazlı Marj Yönetimi
@@ -197,7 +200,7 @@ function App() {
                   className="bg-darkbg border border-borderc p-2 rounded"
                 >
                   <option value="percent">% Buy</option>
-                  <option value="fixed">₺ Buy</option>
+                  <option value="tl">₺ Buy</option>
                 </select>
 
                 <input
@@ -217,7 +220,7 @@ function App() {
                   className="bg-darkbg border border-borderc p-2 rounded"
                 >
                   <option value="percent">% Sell</option>
-                  <option value="fixed">₺ Sell</option>
+                  <option value="tl">₺ Sell</option>
                 </select>
 
                 <input
@@ -236,28 +239,6 @@ function App() {
               >
                 Kaydet
               </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* PRICE PREVIEW */}
-      <div className="mt-12">
-        <h2 className="text-xl text-gold font-bold mb-6">
-          Güncel Fiyat Önizleme
-        </h2>
-
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {prices.map((item, index) => (
-            <div
-              key={index}
-              className="bg-cardbg border border-borderc p-4 rounded-xl"
-            >
-              <h4 className="text-gold font-semibold mb-2">
-                {item.key}
-              </h4>
-              <p>Alış: {item.buy_with_margin}</p>
-              <p>Satış: {item.sell_with_margin}</p>
             </div>
           ))}
         </div>
