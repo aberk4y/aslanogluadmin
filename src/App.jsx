@@ -155,7 +155,7 @@ function App() {
             onChange={(e) => setMarginType(e.target.value)}
           >
             <option value="percent">Yüzde (%)</option>
-            <option value="tl">Sabit TL</option>
+            <option value="fixed">Sabit TL</option>
           </select>
 
           <input
